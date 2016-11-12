@@ -80,6 +80,7 @@ common_static_libraries := \
 	libsparse_static \
 	libsquashfs_utils \
 	libscrypt_static \
+	libcrypto_utils_static \
 	$(if $(CM_BUILD),,libmincrypt) \
 	libbatteryservice \
 	libext2_blkid \
