@@ -197,15 +197,12 @@ struct crypt_persist_data {
 #define DATA_MNT_POINT "/data"
 
 /* Return values for cryptfs_crypto_complete */
-#define CRYPTO_COMPLETE_ENCRYPTED_MDTP_ACTIVATED   2
-#define CRYPTO_COMPLETE_NOT_ENCRYPTED              1
-#define CRYPTO_COMPLETE_ENCRYPTED                  0
-#define CRYPTO_COMPLETE_BAD_METADATA              -1
-#define CRYPTO_COMPLETE_PARTIAL                   -2
-#define CRYPTO_COMPLETE_INCONSISTENT              -3
-#define CRYPTO_COMPLETE_CORRUPT                   -4
-#define CRYPTO_COMPLETE_ERROR_MDTP_ACTIVATED      -5
-
+#define CRYPTO_COMPLETE_NOT_ENCRYPTED  1
+#define CRYPTO_COMPLETE_ENCRYPTED      0
+#define CRYPTO_COMPLETE_BAD_METADATA  -1
+#define CRYPTO_COMPLETE_PARTIAL       -2
+#define CRYPTO_COMPLETE_INCONSISTENT  -3
+#define CRYPTO_COMPLETE_CORRUPT       -4
 
 /* Return values for cryptfs_enable_inplace*() */
 #define ENABLE_INPLACE_OK 0
@@ -263,6 +260,7 @@ extern "C" {
                              unsigned char* master_key);
   int cryptfs_set_password(struct crypt_mnt_ftr* ftr, const char* password,
                            const unsigned char* master_key);
+  const char* cryptfs_get_file_encryption_mode();
 
 #ifdef __cplusplus
 }

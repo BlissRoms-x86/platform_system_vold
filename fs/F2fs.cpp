@@ -56,17 +56,7 @@ status_t Check(const std::string& source, bool trusted) {
     return ForkExecvp(cmd, trusted ? sFsckContext : sFsckUntrustedContext);
 }
 
-status_t Mount(const std::string& source, const std::string& target,
-        const std::string& opts /* = "" */, bool trusted, bool portable) {
-    std::string data(opts);
-
-    if (portable) {
-        if (!data.empty()) {
-            data += ",";
-        }
-        data += "context=u:object_r:sdcard_posix:s0";
-    }
-
+status_t Mount(const std::string& source, const std::string& target) {
     const char* c_source = source.c_str();
     const char* c_target = target.c_str();
     const char* c_data = data.c_str();
