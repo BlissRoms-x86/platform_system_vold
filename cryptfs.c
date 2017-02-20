@@ -1891,7 +1891,9 @@ static int cryptfs_restart_internal(int restart_main)
         property_get("ro.crypto.readonly", ro_prop, "");
         if (strlen(ro_prop) > 0 && atoi(ro_prop)) {
             struct fstab_rec* rec = fs_mgr_get_entry_for_mount_point(fstab, DATA_MNT_POINT);
-            rec->flags |= MS_RDONLY;
+            if (rec) {
+                rec->flags |= MS_RDONLY;
+            }
         }
 
         /* If that succeeded, then mount the decrypted filesystem */
@@ -2277,22 +2279,7 @@ int cryptfs_revert_ext_volume(const char* label) {
 
 int cryptfs_crypto_complete(void)
 {
-  int mdtp_activated = fs_mgr_is_mdtp_activated();
-  int crypto_state = do_crypto_complete("/data");
-
-  /* if MDTP is activated, it should be reflected in the crypto state */
-  if(mdtp_activated){
-    if (crypto_state != CRYPTO_COMPLETE_ENCRYPTED ){
-      /* MDTP is activated and crypto state is bad */
-      return CRYPTO_COMPLETE_ERROR_MDTP_ACTIVATED;
-    } else {
-      /* MDTP is activated and crypto state is ok */
-      return CRYPTO_COMPLETE_ENCRYPTED_MDTP_ACTIVATED;
-    }
-  }
-
-  /* mdtp is not activated, return the crypto state only */
-  return crypto_state;
+  return do_crypto_complete("/data");
 }
 
 int check_unmounted_and_get_ftr(struct crypt_mnt_ftr* crypt_ftr)
@@ -3241,6 +3228,9 @@ static int cryptfs_SHA256_fileblock(const char* filename, __le8* buf)
 
 static int get_fs_type(struct fstab_rec *rec)
 {
+    if (!rec) {
+        return -1;
+    }
     if (!strcmp(rec->fs_type, "ext4")) {
         return EXT4_FS;
     } else if (!strcmp(rec->fs_type, "f2fs")) {
@@ -3363,7 +3353,7 @@ int cryptfs_enable_internal(char *howarg, int crypt_type, char *passwd,
     }
 
     property_get("ro.crypto.state", encrypted_state, "");
-    if (how != CRYPTO_ENABLE_WIPE && !strcmp(encrypted_state, "encrypted") && !previously_encrypted_upto) {
+    if (!strcmp(encrypted_state, "encrypted") && !previously_encrypted_upto) {
         SLOGE("Device is already running encrypted, aborting");
         goto error_unencrypted;
     }
@@ -3423,7 +3413,7 @@ int cryptfs_enable_internal(char *howarg, int crypt_type, char *passwd,
        Now we always reboot from settings, so !no_ui means reboot
      */
     bool onlyCreateHeader = false;
-    if (!no_ui && how != CRYPTO_ENABLE_WIPE) {
+    if (!no_ui) {
         /* Try fallback, which is to reboot and try there */
         onlyCreateHeader = true;
         FILE* breadcrumb = fopen(BREADCRUMB_FILE, "we");
@@ -4239,7 +4229,7 @@ int cryptfs_enable_file()
 int cryptfs_isConvertibleToFBE()
 {
     struct fstab_rec* rec = fs_mgr_get_entry_for_mount_point(fstab, DATA_MNT_POINT);
-    return fs_mgr_is_convertible_to_fbe(rec) ? 1 : 0;
+    return (rec && fs_mgr_is_convertible_to_fbe(rec)) ? 1 : 0;
 }
 
 int cryptfs_create_default_ftr(struct crypt_mnt_ftr* crypt_ftr, __attribute__((unused))int key_length)

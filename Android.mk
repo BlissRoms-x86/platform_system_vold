@@ -56,6 +56,7 @@ common_libraries := \
 	libdiskconfig \
 	liblogwrap \
 	libf2fs_sparseblock \
+	$(if $(CM_BUILD),libcrypto_utils) \
 	libselinux \
 	libutils
 
@@ -79,7 +80,7 @@ common_static_libraries := \
 	libsparse_static \
 	libsquashfs_utils \
 	libscrypt_static \
-	libmincrypt \
+	$(if $(CM_BUILD),,libmincrypt) \
 	libbatteryservice \
 	libext2_blkid \
 	libext2_uuid_static \
@@ -106,7 +107,7 @@ LOCAL_C_INCLUDES := $(common_c_includes)
 LOCAL_SHARED_LIBRARIES := $(common_shared_libraries)
 LOCAL_STATIC_LIBRARIES := $(common_static_libraries)
 LOCAL_MODULE_TAGS := eng tests
-LOCAL_CFLAGS := $(vold_cflags)
+LOCAL_CFLAGS := $(vold_cflags) $(if $(CM_BUILD),-DCM_BUILD)
 LOCAL_CONLYFLAGS := $(vold_conlyflags)
 
 ifeq ($(TARGET_HW_DISK_ENCRYPTION),true)
