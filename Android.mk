@@ -81,6 +81,7 @@ common_static_libraries := \
 	libsquashfs_utils \
 	libscrypt_static \
 	$(if $(CM_BUILD),,libmincrypt) \
+	libmincrypt \
 	libbatteryservice \
 	libext2_blkid \
 	libext2_uuid_static \
