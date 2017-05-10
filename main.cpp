@@ -42,7 +42,7 @@
 #include <dirent.h>
 #include <fs_mgr.h>
 
-static int process_config(VolumeManager *vm);
+static int process_config(VolumeManager *vm, bool* has_adoptable);
 static void coldboot(const char *path);
 static void parse_args(int argc, char** argv);
 
@@ -66,6 +66,7 @@ extern "C" int vold_main(int argc, char** argv) {
             << (android::vold::IsFilesystemSupported("exfat") ? " exfat" : "")
             << (android::vold::IsFilesystemSupported("ext4") ? " ext4" : "")
             << (android::vold::IsFilesystemSupported("f2fs") ? " f2fs" : "")
+            << (android::vold::IsFilesystemSupported("iso9660") ? " iso9660" : "")
             << (android::vold::IsFilesystemSupported("ntfs") ? " ntfs" : "")
             << (android::vold::IsFilesystemSupported("vfat") ? " vfat" : "");
 
@@ -119,7 +120,9 @@ extern "C" int vold_main(int argc, char** argv) {
         exit(1);
     }
 
-    if (process_config(vm)) {
+    bool has_adoptable;
+
+    if (process_config(vm, &has_adoptable)) {
         PLOG(ERROR) << "Error reading configuration... continuing anyways";
     }
 
@@ -145,6 +148,10 @@ extern "C" int vold_main(int argc, char** argv) {
         exit(1);
     }
 #endif
+
+    // This call should go after listeners are started to avoid
+    // a deadlock between vold and init (see b/34278978 for details)
+    property_set("vold.has_adoptable", has_adoptable ? "1" : "0");
 
     // Eventually we'll become the monitoring thread
     while(1) {
@@ -222,7 +229,7 @@ static void coldboot(const char *path) {
     }
 }
 
-static int process_config(VolumeManager *vm) {
+static int process_config(VolumeManager *vm, bool* has_adoptable) {
     std::string path(android::vold::DefaultFstabPath());
     fstab = fs_mgr_read_fstab(path.c_str());
     if (!fstab) {
@@ -231,7 +238,7 @@ static int process_config(VolumeManager *vm) {
     }
 
     /* Loop through entries looking for ones that vold manages */
-    bool has_adoptable = false;
+    *has_adoptable = false;
     for (int i = 0; i < fstab->num_entries; i++) {
         if (fs_mgr_is_voldmanaged(&fstab->recs[i])) {
             std::string sysPattern(fstab->recs[i].blk_device);
@@ -249,7 +256,7 @@ static int process_config(VolumeManager *vm) {
 
             if (fs_mgr_is_encryptable(&fstab->recs[i])) {
                 flags |= android::vold::Disk::Flags::kAdoptable;
-                has_adoptable = true;
+                *has_adoptable = true;
             }
             if (fs_mgr_is_noemulatedsd(&fstab->recs[i])
                     || property_get_bool("vold.debug.default_primary", false)) {
@@ -287,13 +294,12 @@ static int process_config(VolumeManager *vm) {
                 vm->addDiskSource(std::shared_ptr<VolumeManager::DiskSource>(
                         new VolumeManager::DiskSource("/devices/*/" + sdcard, sdcard,
                         partnum, android::vold::Disk::Flags::kAdoptable, "auto", "")));
-                has_adoptable = true;
+                *has_adoptable = true;
                 LOG(INFO) << "Add SDCARD=" << sdcard << " partnum=" << partnum;
             }
         }
 
     }
 
-    property_set("vold.has_adoptable", has_adoptable ? "1" : "0");
     return 0;
 }

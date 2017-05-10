@@ -53,26 +53,6 @@ static const char* kSgdiskToken = " \t\n";
 
 static const char* kSysfsMmcMaxMinors = "/sys/module/mmcblk/parameters/perdev_minors";
 
-static const unsigned int kMajorBlockScsiA = 8;
-static const unsigned int kMajorBlockScsiB = 65;
-static const unsigned int kMajorBlockScsiC = 66;
-static const unsigned int kMajorBlockScsiD = 67;
-static const unsigned int kMajorBlockScsiE = 68;
-static const unsigned int kMajorBlockScsiF = 69;
-static const unsigned int kMajorBlockScsiG = 70;
-static const unsigned int kMajorBlockScsiH = 71;
-static const unsigned int kMajorBlockScsiI = 128;
-static const unsigned int kMajorBlockScsiJ = 129;
-static const unsigned int kMajorBlockScsiK = 130;
-static const unsigned int kMajorBlockScsiL = 131;
-static const unsigned int kMajorBlockScsiM = 132;
-static const unsigned int kMajorBlockScsiN = 133;
-static const unsigned int kMajorBlockScsiO = 134;
-static const unsigned int kMajorBlockScsiP = 135;
-static const unsigned int kMajorBlockMmc = 179;
-static const unsigned int kMajorBlockExperimentalMin = 240;
-static const unsigned int kMajorBlockExperimentalMax = 254;
-
 static const char* kGptBasicData = "EBD0A0A2-B9E5-4433-87C0-68B6B72699C7";
 static const char* kGptAndroidMeta = "19A710A2-B3CA-11E4-B026-10604B889DCF";
 static const char* kGptAndroidExpand = "193D1EA4-B3CA-11E4-B075-10604B889DCF";
@@ -83,7 +63,7 @@ enum class Table {
     kGpt,
 };
 
-static bool isVirtioBlkDevice(unsigned int major) {
+bool Disk::isVirtioBlkDevice(unsigned int major) {
     /*
      * The new emulator's "ranchu" virtual board no longer includes a goldfish
      * MMC-based SD card device; instead, it emulates SD cards with virtio-blk,
@@ -240,6 +220,9 @@ status_t Disk::readMetadata() {
 
     unsigned int majorId = major(mDevice);
     switch (majorId) {
+    case kMajorBlockCdrom:
+        LOG(DEBUG) << "Found a CDROM: " << mSysPath;
+        // fall through
     case kMajorBlockScsiA: case kMajorBlockScsiB: case kMajorBlockScsiC: case kMajorBlockScsiD:
     case kMajorBlockScsiE: case kMajorBlockScsiF: case kMajorBlockScsiG: case kMajorBlockScsiH:
     case kMajorBlockScsiI: case kMajorBlockScsiJ: case kMajorBlockScsiK: case kMajorBlockScsiL:
@@ -312,9 +295,19 @@ status_t Disk::readPartitions() {
     cmd.push_back(mDevPath);
 
     std::vector<std::string> output;
-    status_t res = ForkExecvp(cmd, output);
+    status_t res = maxMinors ? ForkExecvp(cmd, output) : ENODEV;
     if (res != OK) {
         LOG(WARNING) << "sgdisk failed to scan " << mDevPath;
+
+        std::string fsType, unused;
+        if (ReadMetadataUntrusted(mDevPath, fsType, unused, unused) == OK) {
+            if (fsType == "iso9660" || fsType == "udf") {
+                LOG(INFO) << "Detect " << fsType;
+                createPublicVolume(mDevice);
+                res = OK;
+            }
+        }
+
         notifyEvent(ResponseCode::DiskScanned);
         mJustPartitioned = false;
         return res;
@@ -348,6 +341,7 @@ status_t Disk::readPartitions() {
                 const char* type = strtok(nullptr, kSgdiskToken);
 
                 switch (strtol(type, nullptr, 16)) {
+                case 0x00: // ISO9660
                 case 0x06: // FAT16
                 case 0x07: // NTFS/exFAT
                 case 0x0b: // W95 FAT32 (LBA)
@@ -596,6 +590,9 @@ int Disk::getMaxMinors() {
     case kMajorBlockScsiM: case kMajorBlockScsiN: case kMajorBlockScsiO: case kMajorBlockScsiP: {
         // Per Documentation/devices.txt this is static
         return 15;
+    }
+    case kMajorBlockCdrom: {
+        return 0;
     }
     case kMajorBlockMmc: {
         // Per Documentation/devices.txt this is dynamic
