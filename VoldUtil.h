@@ -26,7 +26,4 @@ extern struct fstab *fstab_default;
 
 void get_blkdev_size(int fd, unsigned long* nr_sec);
 
-#ifdef CONFIG_HW_DISK_ENCRYPT_PERF
-void get_blkdev_start_sector(int fd, unsigned long* st_sec);
-#endif
 #endif
