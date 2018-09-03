@@ -101,6 +101,9 @@ status_t Format(const std::string& source) {
     cmd.push_back("-f");
     cmd.push_back("-d1");
 
+    cmd.push_back("-g");
+    cmd.push_back("android");
+
     if (android::base::GetBoolProperty("vold.has_quota", false)) {
         cmd.push_back("-O");
         cmd.push_back("quota");
