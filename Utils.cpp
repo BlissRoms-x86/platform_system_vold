@@ -27,6 +27,7 @@
 #include <android-base/stringprintf.h>
 #include <cutils/fs.h>
 #include <logwrap/logwrap.h>
+#include <cutils/probe_module.h>
 #include <private/android_filesystem_config.h>
 
 #include <mutex>
@@ -569,7 +570,15 @@ bool IsFilesystemSupported(const std::string& fsType) {
     supported.append("fuse\tntfs\n"
                      "fuse\texfat\n");
 
-    return supported.find(fsType + "\n") != std::string::npos;
+    if (supported.find(fsType + "\n") != std::string::npos) {
+        return true;
+    }
+
+    // Check if there is a filesystem module available
+    char fs[PATH_MAX];
+    get_default_mod_path(fs);
+    supported = StringPrintf("%skernel/fs/%s", fs, fsType.c_str());
+    return !access(supported.c_str(), F_OK);
 }
 
 status_t WipeBlockDevice(const std::string& path) {
