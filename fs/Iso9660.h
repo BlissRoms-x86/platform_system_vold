@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_VOLD_KEYUTIL_H
-#define ANDROID_VOLD_KEYUTIL_H
+#ifndef ANDROID_VOLD_ISO9660_H
+#define ANDROID_VOLD_ISO9660_H
 
-#include "KeyBuffer.h"
-#include "KeyStorage.h"
+#include <utils/Errors.h>
 
 #include <string>
-#include <memory>
 
 namespace android {
 namespace vold {
+namespace iso9660 {
 
-bool randomKey(KeyBuffer* key);
-bool installKey(const KeyBuffer& key, std::string* raw_ref);
-bool evictKey(const std::string& raw_ref);
-bool retrieveAndInstallKey(bool create_if_absent, const KeyAuthentication& key_authentication,
-                           const std::string& key_path, const std::string& tmp_path,
-                           std::string* key_ref);
-bool retrieveKey(bool create_if_absent, const std::string& key_path,
-                 const std::string& tmp_path, KeyBuffer* key);
+bool IsSupported();
 
+status_t Mount(const std::string& source, const std::string& target, int ownerUid, int ownerGid,
+               const char* type);
+
+}  // namespace iso9660
 }  // namespace vold
 }  // namespace android
 
