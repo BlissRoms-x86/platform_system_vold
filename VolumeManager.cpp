@@ -195,9 +195,11 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt) {
                 // emulator-specific; see Disk.cpp for details) and UFS card
                 // devices are SD, and that everything else is USB
                 int flags = source->getFlags();
-                if (major == android::vold::Disk::kMajorBlockMmc
+                if (major == kMajorBlockMmc
                     || (eventPath.find("ufs") != std::string::npos)
-                    || android::vold::Disk::isVirtioBlkDevice(major)) {
+                    || (android::vold::IsRunningInEmulator()
+                    && major >= (int) kMajorBlockExperimentalMin
+                    && major <= (int) kMajorBlockExperimentalMax)) {
                     flags |= android::vold::Disk::Flags::kSd;
                 } else if (major == android::vold::Disk::kMajorBlockCdrom) {
                     flags |= android::vold::Disk::Flags::kCdrom;
@@ -626,7 +628,8 @@ int VolumeManager::unmountAll() {
     while ((mentry = getmntent(fp)) != NULL) {
         auto test = std::string(mentry->mnt_dir);
         if ((android::base::StartsWith(test, "/mnt/") &&
-             !android::base::StartsWith(test, "/mnt/vendor")) ||
+             !android::base::StartsWith(test, "/mnt/vendor") &&
+             !android::base::StartsWith(test, "/mnt/product")) ||
             android::base::StartsWith(test, "/storage/")) {
             toUnmount.push_front(test);
         }
