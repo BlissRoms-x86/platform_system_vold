@@ -222,12 +222,20 @@ void VolumeManager::handleBlockEvent(NetlinkEvent* evt) {
                                                     major >= (int)kMajorBlockExperimentalMin &&
                                                     major <= (int)kMajorBlockExperimentalMax)) {
                         flags |= android::vold::Disk::Flags::kSd;
+                    } else if (eventPath.find("ufs") != std::string::npos) {
+                        flags |= android::vold::Disk::Flags::kSd;
+                        flags |= android::vold::Disk::Flags::kUfsCard;
                     } else {
                         flags |= android::vold::Disk::Flags::kUsb;
                     }
 
-                    auto disk =
-                        new android::vold::Disk(eventPath, device, source->getNickname(), flags);
+                    android::vold::Disk* disk = (source->getPartNum() == -1) ?
+                            new android::vold::Disk(eventPath, device,
+                                    source->getNickname(), flags) :
+                            new android::vold::DiskPartition(eventPath, device,
+                                    source->getNickname(), flags,
+                                    source->getPartNum(),
+                                    source->getFsType(), source->getMntOpts());
                     handleDiskAdded(std::shared_ptr<android::vold::Disk>(disk));
                     break;
                 }

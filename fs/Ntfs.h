@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2015 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,26 @@
  * limitations under the License.
  */
 
-#pragma once
+#ifndef ANDROID_VOLD_NTFS_H
+#define ANDROID_VOLD_NTFS_H
 
-#include <fstab/fstab.h>
-#include <sys/cdefs.h>
+#include <utils/Errors.h>
 
-extern android::fs_mgr::Fstab fstab_default;
+#include <string>
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*(a)))
+namespace android {
+namespace vold {
+namespace ntfs {
 
-#ifdef CONFIG_HW_DISK_ENCRYPT_PERF
-void get_blkdev_start_sector(int fd, unsigned long* st_sec);
+bool IsSupported();
+
+status_t Check(const std::string& source);
+status_t Mount(const std::string& source, const std::string& target, int ownerUid, int ownerGid,
+               int permMask);
+status_t Format(const std::string& source);
+
+}  // namespace ntfs
+}  // namespace vold
+}  // namespace android
+
 #endif
