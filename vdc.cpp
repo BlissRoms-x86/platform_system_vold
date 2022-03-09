@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
         checkStatus(vold->encryptFstab(args[2]));
     } else if (args[0] == "cryptfs" && args[1] == "changepw" && args.size() == 5) {
         int type = getType(args[2]);
-        checkStatus(vold->fdeChangePassword(type, args[3], args[4]));
+        checkStatus(vold->fdeChangePassword(type, args[3]));
     } else {
         LOG(ERROR) << "Raw commands are no longer supported";
         exit(EINVAL);
